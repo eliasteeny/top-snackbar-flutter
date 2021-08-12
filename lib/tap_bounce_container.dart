@@ -21,6 +21,8 @@ class _TapBounceContainerState extends State<TapBounceContainer>
 
   final animationDuration = Duration(milliseconds: 200);
 
+  bool isPaning = false;
+
   @override
   void initState() {
     _controller = AnimationController(
@@ -64,12 +66,13 @@ class _TapBounceContainerState extends State<TapBounceContainer>
   }
 
   void _onPanEnd(DragEndDetails details) async {
+    isPaning = true;
     await _closeSnackBar();
   }
 
   Future _closeSnackBar() async {
     _controller.reverse();
     await Future.delayed(animationDuration);
-    widget.onTap?.call();
+    if (!isPaning) widget.onTap?.call();
   }
 }
