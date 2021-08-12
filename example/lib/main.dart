@@ -31,40 +31,22 @@ class _MyAppState extends State<MyApp> {
                     onTap: () {
                       showTopSnackBar(
                         context,
-                        CustomSnackBar.info(
-                          message:
-                              "There is some information. You need to do something with that",
+                        CustomSnackBar.error(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "There is some information. You need to do something with that",
+                              ),
+                              Text("View"),
+                            ],
+                          ),
                         ),
                       );
                     },
                     child: buildButton(context, "Show info"),
                   ),
                   SizedBox(height: 24),
-                  TapBounceContainer(
-                    onTap: () {
-                      showTopSnackBar(
-                        context,
-                        CustomSnackBar.success(
-                          message:
-                              "Good job, your release is successful. Have a nice day",
-                        ),
-                      );
-                    },
-                    child: buildButton(context, "Show success"),
-                  ),
-                  SizedBox(height: 24),
-                  TapBounceContainer(
-                    onTap: () {
-                      showTopSnackBar(
-                        context,
-                        CustomSnackBar.error(
-                          message:
-                              "Something went wrong. Please check your credentials and try again",
-                        ),
-                      );
-                    },
-                    child: buildButton(context, "Show error"),
-                  ),
                 ],
               ),
             ),

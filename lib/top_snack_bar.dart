@@ -35,7 +35,7 @@ void showTopSnackBar(
   overlayState ??= Overlay.of(context);
   late OverlayEntry overlayEntry;
   overlayEntry = OverlayEntry(
-    builder: (context) {
+    builder: (builderContext) {
       return TopSnackBar(
         child: child,
         onDismissed: () => overlayEntry.remove(),
