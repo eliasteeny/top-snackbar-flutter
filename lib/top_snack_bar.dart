@@ -82,6 +82,8 @@ class _TopSnackBarState extends State<TopSnackBar>
   late AnimationController animationController;
   double? topPosition;
 
+  bool isSnackBarDismissed = false;
+
   @override
   void initState() {
     topPosition = widget.additionalTopPadding;
@@ -107,45 +109,69 @@ class _TopSnackBarState extends State<TopSnackBar>
         curve: Curves.elasticOut,
         reverseCurve: Curves.linearToEaseOut,
       ),
-    )..addStatusListener((status) async {
-        if (status == AnimationStatus.completed) {
-          await Future.delayed(widget.displayDuration);
-          animationController.reverse();
-          if (mounted) {
-            setState(() {
-              topPosition = 0;
-            });
-          }
-        }
-
-        if (status == AnimationStatus.dismissed) {
-          widget.onDismissed.call();
-        }
-      });
+    )..addStatusListener(animationListener);
 
     animationController.forward();
   }
 
+  animationListener(AnimationStatus status) async {
+    if (status == AnimationStatus.completed) {
+      await Future.delayed(widget.displayDuration);
+      if (!isSnackBarDismissed) {
+        animationController.reverse();
+        if (mounted) {
+          setState(() {
+            topPosition = 0;
+          });
+        }
+      }
+    }
+
+    if (status == AnimationStatus.dismissed) {
+      widget.onDismissed.call();
+    }
+  }
+
+  final Key dismissableKey = UniqueKey();
+
   @override
   Widget build(BuildContext context) {
-    return AnimatedPositioned(
-      duration: widget.hideOutAnimationDuration * 1.5,
-      curve: Curves.linearToEaseOut,
-      top: topPosition,
-      left: 16,
-      right: 16,
-      child: SlideTransition(
-        position: offsetAnimation as Animation<Offset>,
-        child: SafeArea(
-          child: TapBounceContainer(
-            onTap: () {
-              widget.onTap?.call();
-              animationController.reverse();
-            },
-            child: widget.child,
-          ),
-        ),
-      ),
-    );
+    return isSnackBarDismissed
+        ? Container()
+        : AnimatedPositioned(
+            duration: widget.hideOutAnimationDuration * 1.5,
+            curve: Curves.linearToEaseOut,
+            top: topPosition,
+            left: 16,
+            right: 16,
+            child: SlideTransition(
+              position: offsetAnimation as Animation<Offset>,
+              child: SafeArea(
+                child: TapBounceContainer(
+                  onTap: () {
+                    widget.onTap?.call();
+                    animationController.reverse();
+                  },
+                  child: Dismissible(
+                    onDismissed: onSnackBarDismissed,
+                    key: dismissableKey,
+                    child: widget.child,
+                  ),
+                ),
+              ),
+            ),
+          );
+  }
+
+  onSnackBarDismissed(DismissDirection direction) {
+    animationController.stop();
+    isSnackBarDismissed = true;
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    animationController.dispose();
+    super.dispose();
   }
 }
