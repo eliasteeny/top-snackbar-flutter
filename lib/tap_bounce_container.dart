@@ -28,8 +28,10 @@ class _TapBounceContainerState extends State<TapBounceContainer>
     _controller = AnimationController(
       vsync: this,
       duration: animationDuration,
+      reverseDuration:
+          Duration(milliseconds: animationDuration.inMilliseconds ~/ 2),
       lowerBound: 0.0,
-      upperBound: 0.04,
+      upperBound: 0.1,
     )..addListener(() {
         setState(() {});
       });
@@ -62,6 +64,7 @@ class _TapBounceContainerState extends State<TapBounceContainer>
   }
 
   void _onTapUp(TapUpDetails details) async {
+    print("on tap uo");
     await _closeSnackBar();
   }
 
@@ -71,8 +74,9 @@ class _TapBounceContainerState extends State<TapBounceContainer>
   }
 
   Future _closeSnackBar() async {
-    _controller.reverse();
-    await Future.delayed(animationDuration);
+    // _controller.reverse();
+    await Future.delayed(
+        Duration(milliseconds: animationDuration.inMilliseconds ~/ 2));
     if (!isPaning) widget.onTap?.call();
   }
 }

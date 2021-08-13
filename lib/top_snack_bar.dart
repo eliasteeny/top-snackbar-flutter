@@ -117,7 +117,7 @@ class _TopSnackBarState extends State<TopSnackBar>
   animationListener(AnimationStatus status) async {
     if (status == AnimationStatus.completed) {
       await Future.delayed(widget.displayDuration);
-      if (!isSnackBarDismissed) {
+      if (!isSnackBarDismissed && mounted) {
         animationController.reverse();
         if (mounted) {
           setState(() {
@@ -133,6 +133,7 @@ class _TopSnackBarState extends State<TopSnackBar>
   }
 
   final Key dismissableKey = UniqueKey();
+  final Key verticalDismissableKey = UniqueKey();
 
   @override
   Widget build(BuildContext context) {
@@ -153,9 +154,14 @@ class _TopSnackBarState extends State<TopSnackBar>
                     animationController.reverse();
                   },
                   child: Dismissible(
+                    key: verticalDismissableKey,
                     onDismissed: onSnackBarDismissed,
-                    key: dismissableKey,
-                    child: widget.child,
+                    direction: DismissDirection.up,
+                    child: Dismissible(
+                      onDismissed: onSnackBarDismissed,
+                      key: dismissableKey,
+                      child: widget.child,
+                    ),
                   ),
                 ),
               ),
