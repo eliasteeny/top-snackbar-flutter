@@ -64,7 +64,6 @@ class _TapBounceContainerState extends State<TapBounceContainer>
   }
 
   void _onTapUp(TapUpDetails details) async {
-    print("on tap uo");
     await _closeSnackBar();
   }
 

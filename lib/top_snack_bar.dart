@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:top_snackbar_flutter/tap_bounce_container.dart';
 
@@ -22,33 +23,183 @@ import 'package:top_snackbar_flutter/tap_bounce_container.dart';
 /// The [overlayState] argument is used to add specific overlay state.
 /// If you will not pass it, it will try to get the current overlay state from
 /// passed [BuildContext]
-void showTopSnackBar(
-  BuildContext context,
-  Widget child, {
-  Duration showOutAnimationDuration = const Duration(milliseconds: 1200),
-  Duration hideOutAnimationDuration = const Duration(milliseconds: 550),
-  Duration displayDuration = const Duration(milliseconds: 3000),
-  double additionalTopPadding = 16.0,
-  VoidCallback? onTap,
-  OverlayState? overlayState,
-}) async {
-  overlayState ??= Overlay.of(context);
-  late OverlayEntry overlayEntry;
-  overlayEntry = OverlayEntry(
-    builder: (builderContext) {
-      return TopSnackBar(
-        child: child,
-        onDismissed: () => overlayEntry.remove(),
+
+class TopSnackBarService {
+  static final TopSnackBarService _singleton = TopSnackBarService._internal();
+
+  factory TopSnackBarService() {
+    return _singleton;
+  }
+
+  TopSnackBarService._internal();
+
+  List<SnackBarInstance> notificationsQueue = [];
+
+  bool _isShowingNotifications = false;
+  bool _isHighPriorityShowing = false;
+
+  _showNotifications() async {
+    _isShowingNotifications = true;
+    print("showwing notifications");
+    if (notificationsQueue.isEmpty) {
+      _isShowingNotifications = false;
+      return;
+    }
+    SnackBarInstance currentSnackBar = notificationsQueue[0];
+
+    await currentSnackBar.showOverlay();
+
+    if (notificationsQueue.length > 0) notificationsQueue.removeAt(0);
+    return _showNotifications();
+  }
+
+  void showTopSnackBar(
+    BuildContext context,
+    Widget child, {
+    Duration showOutAnimationDuration = const Duration(milliseconds: 1200),
+    Duration hideOutAnimationDuration = const Duration(milliseconds: 550),
+    Duration displayDuration = const Duration(milliseconds: 3000),
+    double additionalTopPadding = 16.0,
+    VoidCallback? onTap,
+    OverlayState? overlayState,
+    bool isHighPriority = false,
+  }) async {
+    if (isHighPriority) {
+      if (notificationsQueue.isNotEmpty) {
+        notificationsQueue.forEach((element) {
+          if (element.controller.isMounted) {
+            element.controller.dismissNotification!();
+          }
+        });
+
+        notificationsQueue.removeWhere((element) => true);
+      }
+      _isHighPriorityShowing = true;
+      SnackBarInstance instance = await _showTopSnackBar(
+        context,
+        child,
         showOutAnimationDuration: showOutAnimationDuration,
         hideOutAnimationDuration: hideOutAnimationDuration,
         displayDuration: displayDuration,
         additionalTopPadding: additionalTopPadding,
         onTap: onTap,
-      );
-    },
-  );
+        overlayState: overlayState,
+        isHighPriority: isHighPriority,
+      )
+        ..setUp();
 
-  overlayState?.insert(overlayEntry);
+      await instance.showOverlay();
+      _isHighPriorityShowing = false;
+
+      if (notificationsQueue.length > 0) {
+        if (!_isShowingNotifications) _showNotifications();
+      }
+      return;
+    }
+
+    notificationsQueue.add(
+      await _showTopSnackBar(
+        context,
+        child,
+        showOutAnimationDuration: showOutAnimationDuration,
+        hideOutAnimationDuration: hideOutAnimationDuration,
+        displayDuration: displayDuration,
+        additionalTopPadding: additionalTopPadding,
+        onTap: onTap,
+        overlayState: overlayState,
+        isHighPriority: isHighPriority,
+      ),
+    );
+
+    if (!(_isShowingNotifications || _isHighPriorityShowing))
+      _showNotifications();
+  }
+
+  Future<SnackBarInstance> _showTopSnackBar(
+    BuildContext context,
+    Widget child, {
+    Duration showOutAnimationDuration = const Duration(milliseconds: 1200),
+    Duration hideOutAnimationDuration = const Duration(milliseconds: 550),
+    Duration displayDuration = const Duration(milliseconds: 3000),
+    double additionalTopPadding = 16.0,
+    VoidCallback? onTap,
+    OverlayState? overlayState,
+    bool isHighPriority = false,
+  }) async {
+    overlayState ??= Overlay.of(context);
+
+    return SnackBarInstance(
+      context,
+      child,
+      showOutAnimationDuration: showOutAnimationDuration,
+      hideOutAnimationDuration: hideOutAnimationDuration,
+      displayDuration: displayDuration,
+      additionalTopPadding: additionalTopPadding,
+      onTap: onTap,
+      overlayState: overlayState,
+      isHighPriority: isHighPriority,
+    )..setUp();
+  }
+}
+
+class SnackBarInstance {
+  final BuildContext context;
+  final Widget child;
+
+  final Duration showOutAnimationDuration;
+  final Duration hideOutAnimationDuration;
+  final Duration displayDuration;
+  final double additionalTopPadding;
+  final VoidCallback? onTap;
+  final OverlayState? overlayState;
+  final bool isHighPriority;
+  // Future showOverlay;
+
+  SnackBarInstance(
+    this.context,
+    this.child, {
+    this.showOutAnimationDuration = const Duration(milliseconds: 1200),
+    this.hideOutAnimationDuration = const Duration(milliseconds: 550),
+    this.displayDuration = const Duration(milliseconds: 3000),
+    this.additionalTopPadding = 16.0,
+    this.onTap,
+    this.overlayState,
+    this.isHighPriority = false,
+  });
+
+  Completer completer = Completer();
+  late OverlayEntry overlayEntry;
+
+  final SnackBarController controller = SnackBarController();
+
+  setUp() {
+    overlayEntry = OverlayEntry(
+      builder: (builderContext) {
+        return TopSnackBar(
+          child: child,
+          onDismissed: () => overlayEntry.remove(),
+          showOutAnimationDuration: showOutAnimationDuration,
+          hideOutAnimationDuration: hideOutAnimationDuration,
+          displayDuration: displayDuration,
+          additionalTopPadding: additionalTopPadding,
+          onTap: onTap,
+          completer: completer,
+          controller: this,
+        );
+      },
+    );
+  }
+
+  Future<void> showOverlay() {
+    overlayState?.insert(overlayEntry);
+    return completer.future;
+  }
+}
+
+class SnackBarController {
+  void Function()? dismissNotification;
+  bool isMounted = false;
+  SnackBarController();
 }
 
 /// Widget that controls all animations
@@ -60,6 +211,8 @@ class TopSnackBar extends StatefulWidget {
   final displayDuration;
   final additionalTopPadding;
   final VoidCallback? onTap;
+  final Completer completer;
+  final SnackBarInstance controller;
 
   TopSnackBar({
     Key? key,
@@ -69,6 +222,8 @@ class TopSnackBar extends StatefulWidget {
     required this.hideOutAnimationDuration,
     required this.displayDuration,
     required this.additionalTopPadding,
+    required this.completer,
+    required this.controller,
     this.onTap,
   }) : super(key: key);
 
@@ -89,6 +244,10 @@ class _TopSnackBarState extends State<TopSnackBar>
     topPosition = widget.additionalTopPadding;
     _setupAndStartAnimation();
     super.initState();
+
+    widget.controller.controller.dismissNotification =
+        () => animationController.reverse();
+    widget.controller.controller.isMounted = true;
   }
 
   void _setupAndStartAnimation() async {
@@ -129,6 +288,7 @@ class _TopSnackBarState extends State<TopSnackBar>
 
     if (status == AnimationStatus.dismissed) {
       widget.onDismissed.call();
+      onSnackBarClosed();
     }
   }
 
@@ -173,11 +333,18 @@ class _TopSnackBarState extends State<TopSnackBar>
     animationController.stop();
     isSnackBarDismissed = true;
     setState(() {});
+    onSnackBarClosed();
+    widget.onDismissed.call();
+  }
+
+  onSnackBarClosed() {
+    widget.completer.complete();
   }
 
   @override
   void dispose() {
     animationController.dispose();
+    widget.controller.controller.isMounted = false;
     super.dispose();
   }
 }

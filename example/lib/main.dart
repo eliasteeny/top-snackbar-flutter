@@ -27,9 +27,9 @@ class _MyAppState extends State<MyApp> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  TapBounceContainer(
+                  GestureDetector(
                     onTap: () {
-                      showTopSnackBar(
+                      TopSnackBarService().showTopSnackBar(
                         context,
                         CustomSnackBar.error(
                           child: Row(
@@ -46,7 +46,25 @@ class _MyAppState extends State<MyApp> {
                     },
                     child: buildButton(context, "Show info"),
                   ),
-                  SizedBox(height: 24),
+                  GestureDetector(
+                    onTap: () {
+                      TopSnackBarService().showTopSnackBar(
+                          context,
+                          CustomSnackBar.error(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "IMPORTANT !!!!",
+                                ),
+                                Text("View"),
+                              ],
+                            ),
+                          ),
+                          isHighPriority: true);
+                    },
+                    child: buildButton(context, "Show important"),
+                  ),
                 ],
               ),
             ),
