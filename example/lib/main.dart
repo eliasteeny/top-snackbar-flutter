@@ -65,6 +65,12 @@ class _MyAppState extends State<MyApp> {
                     },
                     child: buildButton(context, "Show important"),
                   ),
+                  GestureDetector(
+                    onTap: () {
+                      TopSnackBarService().removeAllSnackBars();
+                    },
+                    child: buildButton(context, "remove all"),
+                  ),
                 ],
               ),
             ),

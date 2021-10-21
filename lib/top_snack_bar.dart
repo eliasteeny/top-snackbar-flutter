@@ -36,7 +36,9 @@ class TopSnackBarService {
   List<SnackBarInstance> notificationsQueue = [];
 
   bool _isShowingNotifications = false;
+
   bool _isHighPriorityShowing = false;
+  SnackBarInstance? _currentHighPriorityNotification;
 
   _showNotifications() async {
     _isShowingNotifications = true;
@@ -51,6 +53,23 @@ class TopSnackBarService {
 
     if (notificationsQueue.length > 0) notificationsQueue.removeAt(0);
     return _showNotifications();
+  }
+
+  removeAllSnackBars() {
+    if (notificationsQueue.isNotEmpty) {
+      notificationsQueue.forEach((element) {
+        if (element.controller.isMounted) {
+          element.controller.dismissNotification!();
+        }
+      });
+
+      notificationsQueue.removeWhere((element) => true);
+    }
+
+    if (_isHighPriorityShowing && _currentHighPriorityNotification != null) {
+      if (_currentHighPriorityNotification!.controller.isMounted)
+        _currentHighPriorityNotification!.controller.dismissNotification!();
+    }
   }
 
   void showTopSnackBar(
@@ -88,8 +107,11 @@ class TopSnackBarService {
       )
         ..setUp();
 
+      _currentHighPriorityNotification = instance;
+
       await instance.showOverlay();
       _isHighPriorityShowing = false;
+      _currentHighPriorityNotification = null;
 
       if (notificationsQueue.length > 0) {
         if (!_isShowingNotifications) _showNotifications();
